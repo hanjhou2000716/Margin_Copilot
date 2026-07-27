@@ -125,9 +125,19 @@
 
                     <div class="bg-[#1C2833] p-5 sm:p-6 rounded-[20px] border border-gray-700 text-[#F4F4F2] shadow-inner">
                         <div class="mb-4 pb-4 border-b border-gray-700">
-                            <div class="text-xs font-bold text-[#E58B55] mb-2 tracking-wide flex items-center">
-                                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                                游離態避雷針 (00685L Beta=2.0)
+                            <div class="flex flex-wrap justify-between items-center gap-2 mb-3">
+                                <div class="text-xs font-bold text-[#E58B55] tracking-wide flex items-center">
+                                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                    游離態避雷針 (00685L Beta=2.0)
+                                </div>
+                                <!-- 新增：00685L 基準現價自由輸入窗口 -->
+                                <div class="flex items-center text-xs">
+                                    <span class="text-gray-400 mr-2 font-medium">基準現價:</span>
+                                    <div class="relative">
+                                        <span class="absolute left-2 top-1.5 text-gray-400 text-xs">$</span>
+                                        <input type="number" id="input-lightning-price" step="0.01" min="0.01" value="13.05" class="w-24 pl-5 pr-2 py-1 text-right bg-[#2C3E50] border border-gray-600 rounded-lg text-white font-bold focus:border-[#E58B55] focus:outline-none text-xs transition-colors">
+                                    </div>
+                                </div>
                             </div>
                             <div class="flex justify-between text-sm font-medium">
                                 <div class="text-gray-400">壓力測試價: <span id="stress-lightning-price" class="font-bold text-white ml-1">--</span></div>
@@ -405,9 +415,21 @@
         const emptyState = document.getElementById('empty-state');
         const stressSlider = document.getElementById('stress-slider');
         const targetRatioSelect = document.getElementById('target-ratio-select');
+        const inputLightningPrice = document.getElementById('input-lightning-price');
 
         const formatNumber = (num, decimals = 0) => num.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
         const formatPercent = (num) => (num === Infinity || isNaN(num)) ? "N/A" : (num * 100).toFixed(2) + '%';
+
+        // 新增：監聽避雷針價格輸入事件
+        if (inputLightningPrice) {
+            inputLightningPrice.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                if (!isNaN(val) && val > 0) {
+                    lightningRod.currentPrice = val;
+                    calculateAndRenderSummary();
+                }
+            });
+        }
 
         function showModal(title, message) {
             document.getElementById('modal-title').textContent = title;
