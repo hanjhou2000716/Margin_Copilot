@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- PWA App 專用標籤 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="槓桿領航員">
+    <meta name="theme-color" content="#1C2833">
+    <!-- 綁定您的 App 圖示 -->
+    <link rel="apple-touch-icon" href="Margin Copilot app.png">
+    <link rel="icon" type="image/png" href="Margin Copilot app.png">
+    <!-- 動態 Manifest 佔位符 -->
+    <link rel="manifest" id="manifest-placeholder">
+    
+    <title>🧭 槓桿領航員 Margin Copilot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: #F4F4F2; /* 無印灰打底 */
+            -webkit-tap-highlight-color: transparent; /* 消除手機點擊閃爍 */
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #859D8E !important;
+            box-shadow: 0 0 0 3px rgba(133, 157, 142, 0.2) !important;
+        }
+        input[type=range] {
+            accent-color: #859D8E;
+        }
+        /* App 安裝提示彈窗動畫 */
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-slide-up {
+            animation: slideUp 0.3s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="text-gray-700 antialiased">
+
+    <nav class="bg-[#1C2833] text-[#F4F4F2] shadow-sm sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 sm:h-18 items-center">
+                <div class="flex items-center">
+                    <span class="text-2xl mr-2 sm:mr-3">🧭</span>
+                    <span class="font-black text-lg sm:text-xl tracking-wide truncate">槓桿領航員 <span class="hidden sm:inline">Margin Copilot</span></span>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <span class="text-[10px] sm:text-xs text-gray-300 font-medium hidden md:block bg-[#2C3E50] px-3 py-1.5 rounded-full border border-gray-600">
+                        維持率動態監管與去槓桿系統
+                    </span>
+                    <!-- 安裝 App 按鈕 -->
+                    <button onclick="showInstallGuide()" class="flex items-center bg-[#859D8E] hover:bg-[#72877a] text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-colors shadow-sm">
+                        <svg class="w-4 h-4 mr-1 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        下載 App
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+            
+            <div class="lg:col-span-1 space-y-6 lg:space-y-8">
+                
+                <div class="bg-white rounded-[24px] shadow-sm border border-gray-100 p-6 sm:p-8">
+                    <h2 class="text-sm sm:text-base font-bold text-gray-500 mb-6 flex items-center tracking-wider">
+                        整戶維持率監管 (AGGREGATE)
+                    </h2>
+                    
+                    <div class="mb-8 flex justify-center">
+                        <div class="relative w-40 h-40 sm:w-48 sm:h-48 flex items-center justify-center rounded-full border-[12px] border-[#F4F4F2] transition-all duration-500" id="ratio-circle">
+                            <div class="text-center">
+                                <div class="text-3xl sm:text-4xl font-black text-[#859D8E]" id="overall-ratio">0.0%</div>
+                                <div class="text-xs sm:text-sm text-gray-400 mt-2 font-bold" id="ratio-status">無部位</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4 text-sm font-medium">
+                        <div class="flex justify-between items-center pb-3 border-b border-gray-50">
+                            <span class="text-gray-400">總市值 (擔保品)</span>
+                            <span class="font-bold text-gray-700 text-base" id="total-assets">0</span>
+                        </div>
+                        <div class="flex justify-between items-center pb-3 border-b border-gray-50">
+                            <span class="text-gray-400">總負債 (融資/借款)</span>
+                            <span class="font-bold text-gray-700 text-base" id="total-debt">0</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-400">未實現損益</span>
+                            <span class="font-black text-base" id="total-pnl">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-[24px] shadow-sm border border-gray-100 p-6 sm:p-8">
+                    <h2 class="text-sm sm:text-base font-bold text-gray-500 mb-6 flex items-center tracking-wider">
+                        大盤暴跌壓力測試與去槓桿矩陣
+                    </h2>
+                    
+                    <div class="mb-6">
+                        <label class="block text-sm font-bold text-gray-600 mb-3">
+                            模擬大盤 (原型) 下跌： <span id="stress-value" class="text-[#E58B55] font-black text-lg sm:text-xl ml-1">0%</span>
+                        </label>
+                        <input type="range" id="stress-slider" min="0" max="50" step="5" value="0" class="w-full h-2.5 sm:h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        <div class="flex justify-between text-[10px] sm:text-xs text-gray-400 mt-3 font-medium">
+                            <span>0%</span>
+                            <span>-25% (崩盤)</span>
+                            <span>-50% (極端)</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-[#1C2833] p-5 sm:p-6 rounded-[20px] border border-gray-700 text-[#F4F4F2] shadow-inner">
+                        <div class="mb-4 pb-4 border-b border-gray-700">
+                            <div class="text-xs font-bold text-[#E58B55] mb-2 tracking-wide flex items-center">
+                                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                游離態避雷針 (00685L Beta=2.0)
+                            </div>
+                            <div class="flex justify-between text-sm font-medium">
+                                <div class="text-gray-400">壓力測試價: <span id="stress-lightning-price" class="font-bold text-white ml-1">--</span></div>
+                                <div class="text-gray-400">跌幅: <span id="stress-lightning-drop" class="font-bold text-[#E58B55] ml-1">--</span></div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center mb-5">
+                            <span class="text-sm font-bold text-gray-300">壓力後整戶維持率：</span>
+                            <span class="font-black text-xl sm:text-2xl" id="stress-ratio">0.0%</span>
+                        </div>
+                        
+                        <div class="mt-2 pt-5 border-t border-gray-700">
+                            <label class="block text-xs font-bold text-gray-400 mb-2">去槓桿目標 (Target Ratio)</label>
+                            <select id="target-ratio-select" class="w-full p-2.5 sm:p-3 text-sm font-medium border border-gray-600 rounded-xl mb-4 bg-[#2C3E50] text-white focus:border-[#E58B55]">
+                                <option value="200">200% (安全基準線)</option>
+                                <option value="166" selected>166% (展期續約線)</option>
+                                <option value="130">130% (斷頭追繳線)</option>
+                            </select>
+                            
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center bg-[#2C3E50] p-3 rounded-xl">
+                                    <span class="text-xs sm:text-sm text-gray-300 font-medium">需補繳還款額 (D - A/Rt)：</span>
+                                    <span class="font-black text-[#E58B55] text-sm sm:text-base" id="rescue-cash">$0</span>
+                                </div>
+                                <div class="flex justify-between items-center bg-[#2C3E50] p-3 rounded-xl">
+                                    <span class="text-xs sm:text-sm text-gray-300 font-medium">約需變賣正二 (張數)：</span>
+                                    <span class="font-bold text-[#859D8E] text-sm sm:text-base" id="rescue-lots">0.00 張</span>
+                                </div>
+                            </div>
+                            <p class="text-[10px] text-gray-400 mt-4 leading-relaxed">
+                                * 去槓桿物理學：賣出未設質的避雷針資產以償還債務，透過降低負債分母，主動讓維持率回血至目標區間。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-[24px] shadow-sm border border-gray-100 p-6 sm:p-8">
+                    <h2 class="text-sm sm:text-base font-bold text-gray-500 mb-6 flex items-center tracking-wider border-b border-gray-100 pb-4">
+                        DEVTPS S10 核心系統原則
+                    </h2>
+                    <ul class="space-y-5 text-sm leading-relaxed text-gray-600">
+                        <li class="flex items-start">
+                            <span class="flex-shrink-0 w-6 h-6 rounded-full bg-[#E58B55] text-white flex items-center justify-center font-black text-xs mr-3 mt-0.5">1</span>
+                            <div>
+                                <span class="font-bold text-gray-800">擔保品唯一原型鐵律</span><br>質押 006208 (Beta=1.0)。高波動衍生正二絕對不可質押，原型提供穩固地基。
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="flex-shrink-0 w-6 h-6 rounded-full bg-[#E58B55] text-white flex items-center justify-center font-black text-xs mr-3 mt-0.5">2</span>
+                            <div>
+                                <span class="font-bold text-gray-800">攻防分流與租稅工程</span><br>借款 100% 買入 00685L。利用有息負債購置不配息之正二，獲取極致 Tax-Alpha。
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="flex-shrink-0 w-6 h-6 rounded-full bg-[#E58B55] text-white flex items-center justify-center font-black text-xs mr-3 mt-0.5">3</span>
+                            <div>
+                                <span class="font-bold text-gray-800">游離態資產與避雷針</span><br>00685L 保持清白不設質。當觸發警戒，盤中精確變賣正二還款以「降低負債分母」。
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2 space-y-6 lg:space-y-8">
+                
+                <div class="bg-white rounded-[24px] shadow-sm border border-gray-100 p-6 sm:p-8">
+                    <h2 class="text-sm sm:text-base font-bold text-gray-500 mb-6 tracking-wider">新增信用部位</h2>
+                    <form id="add-position-form" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-2">股票代號 (如: 006208)</label>
+                            <input type="text" id="input-symbol" required value="006208" class="w-full p-3 bg-[#F4F4F2] border border-gray-200 rounded-xl text-gray-700 font-medium focus:bg-white transition-colors">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-2">部位類型</label>
+                            <select id="input-type" class="w-full p-3 bg-[#F4F4F2] border border-gray-200 rounded-xl text-gray-700 font-medium focus:bg-white transition-colors">
+                                <option value="pledge" selected>股票質押 (Pledge)</option>
+                                <option value="long">融資做多 (Margin Long)</option>
+                                <option value="short">融券做空 (Margin Short)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-2" id="label-buy-price">借款總額 (元)</label>
+                            <input type="number" id="input-buy-price" required min="1" step="0.01" value="1870000" class="w-full p-3 bg-[#F4F4F2] border border-gray-200 rounded-xl text-gray-700 font-medium focus:bg-white transition-colors">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-2">目前股價 (元)</label>
+                            <input type="number" id="input-current-price" required min="0.01" step="0.01" value="249.10" class="w-full p-3 bg-[#F4F4F2] border border-gray-200 rounded-xl text-gray-700 font-medium focus:bg-white transition-colors">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-2">擔保品數量 (股)</label>
+                            <input type="number" id="input-shares" required min="1" step="1" value="13000" class="w-full p-3 bg-[#F4F4F2] border border-gray-200 rounded-xl text-gray-700 font-medium focus:bg-white transition-colors">
+                        </div>
+                        <div id="margin-ratio-container" class="hidden">
+                            <label class="block text-xs font-bold text-gray-500 mb-2" id="label-margin-ratio">融資成數 (%)</label>
+                            <input type="number" id="input-margin-ratio" required min="1" max="100" value="60" class="w-full p-3 bg-[#F4F4F2] border border-gray-200 rounded-xl text-gray-700 font-medium focus:bg-white transition-colors">
+                        </div>
+                        <div class="sm:col-span-2 md:col-span-3 flex justify-end mt-2">
+                            <button type="submit" class="w-full sm:w-auto bg-[#1C2833] hover:bg-[#2C3E50] text-white font-medium py-3 px-8 rounded-xl transition duration-200 ease-in-out shadow-sm flex items-center justify-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                記錄部位
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="bg-white rounded-[24px] shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="px-6 sm:px-8 py-5 border-b border-gray-100 flex flex-wrap gap-3 justify-between items-center bg-white">
+                        <h2 class="text-sm sm:text-base font-bold text-gray-500 tracking-wider">部位監控清單</h2>
+                        <div class="flex space-x-2">
+                            <span class="text-[10px] sm:text-xs text-[#859D8E] font-bold bg-[#F4F4F2] px-3 py-1.5 rounded-lg border border-gray-100">展期線: 166%</span>
+                            <span class="text-[10px] sm:text-xs text-[#E58B55] font-bold bg-[#F4F4F2] px-3 py-1.5 rounded-lg border border-gray-100">追繳線: 130%</span>
+                        </div>
+                    </div>
+                    <!-- 讓表格在手機端可以左右滑動 -->
+                    <div class="overflow-x-auto no-scrollbar">
+                        <table class="min-w-full divide-y divide-gray-100 text-sm">
+                            <thead class="bg-[#F4F4F2]">
+                                <tr>
+                                    <th scope="col" class="px-6 py-4 text-left font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">標的</th>
+                                    <th scope="col" class="px-4 py-4 text-left font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">類型</th>
+                                    <th scope="col" class="px-6 py-4 text-right font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">借款 / 股數</th>
+                                    <th scope="col" class="px-6 py-4 text-right font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">現價 <span class="text-[10px] font-normal lowercase bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded ml-1">修改</span></th>
+                                    <th scope="col" class="px-6 py-4 text-right font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">維持率</th>
+                                    <th scope="col" class="px-6 py-4 text-right font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">展期價 (166%)</th>
+                                    <th scope="col" class="px-6 py-4 text-right font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">斷頭價 (130%)</th>
+                                    <th scope="col" class="px-4 py-4 text-right font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="positions-table-body" class="bg-white divide-y divide-gray-50">
+                                <tr id="empty-state">
+                                    <td colspan="8" class="px-8 py-16 text-center text-gray-400">
+                                        <svg class="mx-auto h-12 w-12 text-gray-200 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                                        <p class="font-medium">尚未新增任何部位</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <div id="install-modal" class="fixed inset-0 bg-gray-900 bg-opacity-60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center z-50 transition-opacity">
+        <div class="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 sm:p-8 max-w-md w-full animate-slide-up sm:mx-4">
+            <div class="flex justify-between items-center mb-5">
+                <h3 class="text-xl font-black text-[#1C2833]">📱 安裝 App 至桌面</h3>
+                <button onclick="closeInstallGuide()" class="text-gray-400 hover:text-gray-600 bg-gray-100 rounded-full p-1.5"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            </div>
+            
+            <div class="space-y-4 text-sm font-medium text-gray-600" id="install-instructions">
+                <!-- JS 會根據裝置動態寫入教學內容 -->
+            </div>
+            
+            <div class="mt-6 pt-5 border-t border-gray-100 flex justify-center">
+                <button onclick="closeInstallGuide()" class="w-full bg-[#1C2833] hover:bg-[#2C3E50] text-white py-3 rounded-xl font-bold transition-colors">
+                    我知道了
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="custom-modal" class="fixed inset-0 bg-gray-900 bg-opacity-40 backdrop-blur-sm hidden flex items-center justify-center z-50 transition-opacity">
+        <div class="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full mx-4 transform scale-95 transition-transform border border-gray-100">
+            <h3 class="text-xl font-black text-[#1C2833] mb-3" id="modal-title">提示</h3>
+            <p class="text-sm text-gray-500 mb-6 font-medium leading-relaxed" id="modal-message">訊息內容</p>
+            <div class="flex justify-end">
+                <button onclick="closeModal()" class="bg-[#859D8E] hover:bg-[#6f8577] text-white py-2.5 px-6 rounded-xl text-sm font-bold focus:outline-none transition-colors">確定</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. 動態產生 PWA Manifest ---
+        // 這樣就能在單一 HTML 檔案中滿足 PWA 需要 manifest.json 的規格
+        const manifestData = {
+            "name": "槓桿領航員 Margin Copilot",
+            "short_name": "MarginCopilot",
+            "description": "維持率動態監管與去槓桿系統",
+            "start_url": "./",
+            "display": "standalone",
+            "background_color": "#F4F4F2",
+            "theme_color": "#1C2833",
+            "icons": [
+                {
+                    "src": "Margin Copilot app.png",
+                    "sizes": "192x192",
+                    "type": "image/png"
+                },
+                {
+                    "src": "Margin Copilot app.png",
+                    "sizes": "512x512",
+                    "type": "image/png"
+                }
+            ]
+        };
+        const manifestString = JSON.stringify(manifestData);
+        // 轉為 Data URI 並注入
+        const manifestUrl = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(manifestString);
+        document.getElementById('manifest-placeholder').setAttribute('href', manifestUrl);
+
+
+        // --- 2. App 安裝引導邏輯 ---
+        function showInstallGuide() {
+            const modal = document.getElementById('install-modal');
+            const instructions = document.getElementById('install-instructions');
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            const isAndroid = /android/i.test(navigator.userAgent);
+            
+            if (isIOS) {
+                instructions.innerHTML = `
+                    <p class="mb-3">iOS 用戶安裝方式：</p>
+                    <ol class="list-decimal pl-5 space-y-2">
+                        <li>點擊瀏覽器下方導航列的 <strong>「分享」</strong> 按鈕 <svg class="inline w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg></li>
+                        <li>向下滑動，選擇 <strong>「加入主畫面」</strong> (Add to Home Screen)</li>
+                        <li>點擊右上角的「新增」即可完成！</li>
+                    </ol>`;
+            } else if (isAndroid) {
+                instructions.innerHTML = `
+                    <p class="mb-3">Android 用戶安裝方式：</p>
+                    <ol class="list-decimal pl-5 space-y-2">
+                        <li>點擊瀏覽器右上角的 <strong>「選單 (三個點)」</strong></li>
+                        <li>選擇 <strong>「安裝應用程式」</strong> 或 <strong>「加到主畫面」</strong></li>
+                        <li>依照系統提示點擊「新增」即可完成！</li>
+                    </ol>`;
+            } else {
+                instructions.innerHTML = `
+                    <p class="mb-3">電腦版安裝方式：</p>
+                    <ol class="list-decimal pl-5 space-y-2">
+                        <li>在 Chrome 或 Edge 瀏覽器中</li>
+                        <li>查看網址列最右側，點擊 <strong>「安裝 App」</strong> 圖示 (通常是一個有向下箭頭的電腦圖示)</li>
+                        <li>點擊安裝，即可在桌面建立捷徑！</li>
+                    </ol>`;
+            }
+            modal.classList.remove('hidden');
+        }
+
+        function closeInstallGuide() {
+            document.getElementById('install-modal').classList.add('hidden');
+        }
+
+        // --- 3. 系統核心邏輯 ---
+        // 預設帶入 Scenario A 設定
+        let positions = [
+            {
+                id: 'scenario-a',
+                symbol: '006208',
+                type: 'pledge',
+                buyPrice: 0,
+                loanAmount: 1870000,
+                currentPrice: 249.10,
+                shares: 13000,
+                marginRatio: 0
+            }
+        ];
+        
+        // 避雷針 00685L 假設條件
+        let lightningRod = {
+            symbol: '00685L',
+            beta: 2.0,
+            currentPrice: 13.05
+        };
+
+        let stressDropPercent = 0;
+        let targetMarginRatio = 1.66;
+
+        const form = document.getElementById('add-position-form');
+        const inputType = document.getElementById('input-type');
+        const labelBuyPrice = document.getElementById('label-buy-price');
+        const marginRatioContainer = document.getElementById('margin-ratio-container');
+        const labelMarginRatio = document.getElementById('label-margin-ratio');
+        const tableBody = document.getElementById('positions-table-body');
+        const emptyState = document.getElementById('empty-state');
+        const stressSlider = document.getElementById('stress-slider');
+        const targetRatioSelect = document.getElementById('target-ratio-select');
+
+        const formatNumber = (num, decimals = 0) => num.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+        const formatPercent = (num) => (num === Infinity || isNaN(num)) ? "N/A" : (num * 100).toFixed(2) + '%';
+
+        function showModal(title, message) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').textContent = message;
+            document.getElementById('custom-modal').classList.remove('hidden');
+        }
+        function closeModal() {
+            document.getElementById('custom-modal').classList.add('hidden');
+        }
+
+        inputType.addEventListener('change', (e) => {
+            if(e.target.value === 'pledge') {
+                labelBuyPrice.textContent = '借款總額 (元)';
+                marginRatioContainer.classList.add('hidden');
+            } else if(e.target.value === 'long') {
+                labelBuyPrice.textContent = '買進價格 (元)';
+                marginRatioContainer.classList.remove('hidden');
+                labelMarginRatio.textContent = '融資成數 (%)';
+                document.getElementById('input-margin-ratio').value = 60;
+            } else {
+                labelBuyPrice.textContent = '賣出價格 (元)';
+                marginRatioContainer.classList.remove('hidden');
+                labelMarginRatio.textContent = '融券保證金成數 (%)';
+                document.getElementById('input-margin-ratio').value = 90;
+            }
+        });
+
+        stressSlider.addEventListener('input', (e) => {
+            stressDropPercent = parseInt(e.target.value);
+            document.getElementById('stress-value').textContent = `-${stressDropPercent}%`;
+            calculateAndRenderSummary();
+        });
+
+        targetRatioSelect.addEventListener('change', (e) => {
+            targetMarginRatio = parseFloat(e.target.value) / 100;
+            calculateAndRenderSummary();
+        });
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const symbol = document.getElementById('input-symbol').value.trim();
+            const type = document.getElementById('input-type').value;
+            const buyOrLoanInput = parseFloat(document.getElementById('input-buy-price').value);
+            const currentPrice = parseFloat(document.getElementById('input-current-price').value);
+            const shares = parseInt(document.getElementById('input-shares').value);
+            const marginRatio = parseFloat(document.getElementById('input-margin-ratio').value) / 100;
+
+            if (buyOrLoanInput <= 0 || currentPrice <= 0 || shares <= 0) {
+                showModal('輸入錯誤', '金額與股數必須大於 0');
+                return;
+            }
+
+            positions.push({
+                id: Date.now().toString(),
+                symbol, type,
+                buyPrice: type === 'pledge' ? 0 : buyOrLoanInput,
+                loanAmount: type === 'pledge' ? buyOrLoanInput : 0,
+                currentPrice, shares,
+                marginRatio: type === 'pledge' ? 0 : marginRatio
+            });
+            form.reset();
+            document.getElementById('input-type').value = 'pledge';
+            labelBuyPrice.textContent = '借款總額 (元)';
+            marginRatioContainer.classList.add('hidden');
+            document.getElementById('input-shares').value = '1000';
+            
+            renderTable();
+            calculateAndRenderSummary();
+        });
+
+        function deletePosition(id) {
+            positions = positions.filter(p => p.id !== id);
+            renderTable();
+            calculateAndRenderSummary();
+        }
+
+        function updateCurrentPrice(id, newPrice) {
+            const val = parseFloat(newPrice);
+            if (!isNaN(val) && val > 0) {
+                const pos = positions.find(p => p.id === id);
+                if(pos) { pos.currentPrice = val; calculateAndRenderSummary(); updateRowDisplay(id); }
+            }
+        }
+
+        function calculatePositionMetrics(pos, simulatedPriceDrop = 0) {
+            const simulatedCurrentPrice = pos.currentPrice * (1 - simulatedPriceDrop / 100);
+            let loanAmount = 0, assetValue = 0, maintenanceRatio = 0, marginCallPrice = 0, extensionPrice = 0, pnl = 0;
+
+            if (pos.type === 'pledge') {
+                loanAmount = pos.loanAmount; 
+                assetValue = simulatedCurrentPrice * pos.shares;
+                maintenanceRatio = loanAmount > 0 ? assetValue / loanAmount : 0;
+                marginCallPrice = (loanAmount * 1.3) / pos.shares;
+                extensionPrice = (loanAmount * 1.66) / pos.shares;
+                pnl = (simulatedCurrentPrice - pos.currentPrice) * pos.shares; // 用現價算未實現
+            } else if (pos.type === 'long') {
+                loanAmount = pos.buyPrice * pos.shares * pos.marginRatio;
+                assetValue = simulatedCurrentPrice * pos.shares;
+                maintenanceRatio = loanAmount > 0 ? assetValue / loanAmount : 0;
+                marginCallPrice = (loanAmount * 1.3) / pos.shares;
+                extensionPrice = (loanAmount * 1.66) / pos.shares;
+                pnl = (simulatedCurrentPrice - pos.buyPrice) * pos.shares;
+            } else {
+                const marginDeposit = pos.buyPrice * pos.shares * pos.marginRatio;
+                const collateral = pos.buyPrice * pos.shares;
+                assetValue = marginDeposit + collateral;
+                loanAmount = simulatedCurrentPrice * pos.shares;
+                maintenanceRatio = loanAmount > 0 ? assetValue / loanAmount : 0;
+                marginCallPrice = assetValue / (pos.shares * 1.3);
+                extensionPrice = assetValue / (pos.shares * 1.66);
+                pnl = (pos.buyPrice - simulatedCurrentPrice) * pos.shares;
+            }
+            return { loanAmount, assetValue, maintenanceRatio, marginCallPrice, extensionPrice, pnl, simulatedCurrentPrice };
+        }
+
+        function renderTable() {
+            const rows = tableBody.querySelectorAll('.position-row');
+            rows.forEach(row => row.remove());
+
+            if (positions.length === 0) {
+                emptyState.style.display = 'table-row';
+                return;
+            } else {
+                emptyState.style.display = 'none';
+            }
+
+            positions.forEach(pos => {
+                const tr = document.createElement('tr');
+                tr.className = 'position-row hover:bg-[#F9F9F8] transition-colors';
+                tr.id = `row-${pos.id}`;
+                
+                let typeHtml = '', priceHtml = '';
+                if (pos.type === 'pledge') {
+                    typeHtml = `<span class="px-2.5 py-1 inline-flex text-[10px] sm:text-xs font-bold rounded-lg bg-[#E2E8F0] text-[#475569]">質押</span>`;
+                    priceHtml = `<div class="font-bold text-gray-700">$${formatNumber(pos.loanAmount)}</div><div class="text-[10px] text-gray-400 font-medium">${formatNumber(pos.shares)} 股</div>`;
+                } else if (pos.type === 'long') {
+                    typeHtml = `<span class="px-2.5 py-1 inline-flex text-[10px] sm:text-xs font-bold rounded-lg bg-[#FDE8E8] text-[#D9534F]">融資</span>`;
+                    priceHtml = `<div class="font-bold text-gray-700">$${formatNumber(pos.buyPrice, 2)}</div><div class="text-[10px] text-gray-400 font-medium">${formatNumber(pos.shares)} 股</div>`;
+                } else {
+                    typeHtml = `<span class="px-2.5 py-1 inline-flex text-[10px] sm:text-xs font-bold rounded-lg bg-[#E6F4EA] text-[#859D8E]">融券</span>`;
+                    priceHtml = `<div class="font-bold text-gray-700">$${formatNumber(pos.buyPrice, 2)}</div><div class="text-[10px] text-gray-400 font-medium">${formatNumber(pos.shares)} 股</div>`;
+                }
+
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-black text-[#1C2833]">${pos.symbol}</td>
+                    <td class="px-4 py-4 whitespace-nowrap">${typeHtml}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm">${priceHtml}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right">
+                        <input type="number" step="0.01" min="0.01" value="${pos.currentPrice}" 
+                            class="w-20 sm:w-24 text-right p-1.5 border border-gray-200 rounded-lg text-sm font-bold text-[#1C2833] focus:border-[#859D8E] focus:ring-0 bg-[#F4F4F2] hover:bg-white transition-colors"
+                            onchange="updateCurrentPrice('${pos.id}', this.value)">
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right font-black text-sm sm:text-base" id="mr-${pos.id}">-</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-[#859D8E] font-bold" id="ext-${pos.id}">-</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-[#E58B55] font-bold" id="mc-${pos.id}">-</td>
+                    <td class="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button onclick="deletePosition('${pos.id}')" class="text-gray-300 hover:text-[#D9534F] bg-white p-2 rounded-full hover:bg-gray-50 transition border border-gray-100 shadow-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+                updateRowDisplay(pos.id);
+            });
+        }
+
+        function updateRowDisplay(id) {
+            const pos = positions.find(p => p.id === id);
+            if(!pos) return;
+            const metrics = calculatePositionMetrics(pos);
+            const mrElement = document.getElementById(`mr-${id}`);
+            if(mrElement) {
+                mrElement.textContent = formatPercent(metrics.maintenanceRatio);
+                document.getElementById(`mc-${id}`).textContent = `$${formatNumber(metrics.marginCallPrice, 2)}`;
+                document.getElementById(`ext-${id}`).textContent = `$${formatNumber(metrics.extensionPrice, 2)}`;
+                
+                if (metrics.maintenanceRatio < 1.3) mrElement.className = 'px-6 py-4 whitespace-nowrap text-right font-black text-sm sm:text-base text-[#D9534F]';
+                else if (metrics.maintenanceRatio < 1.66) mrElement.className = 'px-6 py-4 whitespace-nowrap text-right font-black text-sm sm:text-base text-[#E58B55]';
+                else mrElement.className = 'px-6 py-4 whitespace-nowrap text-right font-black text-sm sm:text-base text-[#859D8E]';
+            }
+        }
+
+        function calculateAndRenderSummary() {
+            let totalAsset = 0, totalDebt = 0, totalPnl = 0, stressAsset = 0, stressDebt = 0;
+            positions.forEach(pos => {
+                const metrics = calculatePositionMetrics(pos, 0);
+                totalAsset += metrics.assetValue;
+                totalDebt += metrics.loanAmount;
+                totalPnl += metrics.pnl;
+                const stressMetrics = calculatePositionMetrics(pos, stressDropPercent);
+                stressAsset += stressMetrics.assetValue;
+                stressDebt += stressMetrics.loanAmount;
+            });
+
+            const overallRatio = totalDebt > 0 ? totalAsset / totalDebt : 0;
+            document.getElementById('total-assets').textContent = `NT$${formatNumber(totalAsset)}`;
+            document.getElementById('total-debt').textContent = `NT$${formatNumber(totalDebt)}`;
+            
+            const pnlElement = document.getElementById('total-pnl');
+            pnlElement.textContent = `${totalPnl >= 0 ? '+' : ''}NT$${formatNumber(totalPnl)}`;
+            pnlElement.className = `font-black text-base ${totalPnl >= 0 ? 'text-[#D9534F]' : 'text-[#859D8E]'}`;
+
+            const ratioElement = document.getElementById('overall-ratio');
+            const ratioCircle = document.getElementById('ratio-circle');
+            const statusElement = document.getElementById('ratio-status');
+
+            if (positions.length === 0) {
+                ratioElement.textContent = '0.0%';
+                ratioElement.className = 'text-3xl sm:text-4xl font-black text-gray-300';
+                ratioCircle.className = 'relative w-40 h-40 sm:w-48 sm:h-48 flex items-center justify-center rounded-full border-[12px] border-gray-100';
+                statusElement.textContent = '無部位';
+                statusElement.className = 'text-xs sm:text-sm mt-2 font-bold text-gray-400';
+            } else {
+                ratioElement.textContent = formatPercent(overallRatio);
+                if (overallRatio < 1.3) {
+                    ratioElement.className = 'text-3xl sm:text-4xl font-black text-[#D9534F]';
+                    ratioCircle.className = 'relative w-40 h-40 sm:w-48 sm:h-48 flex items-center justify-center rounded-full border-[12px] border-[#FDE8E8] shadow-[0_0_20px_rgba(217,83,79,0.15)] transition-all duration-500';
+                    statusElement.textContent = '危險！跌破追繳線';
+                    statusElement.className = 'text-xs sm:text-sm mt-2 font-bold text-[#D9534F]';
+                } else if (overallRatio < 1.66) {
+                    ratioElement.className = 'text-3xl sm:text-4xl font-black text-[#E58B55]';
+                    ratioCircle.className = 'relative w-40 h-40 sm:w-48 sm:h-48 flex items-center justify-center rounded-full border-[12px] border-[#FCEBDB] transition-all duration-500';
+                    statusElement.textContent = '警戒！低於展期線';
+                    statusElement.className = 'text-xs sm:text-sm mt-2 font-bold text-[#E58B55]';
+                } else {
+                    ratioElement.className = 'text-3xl sm:text-4xl font-black text-[#859D8E]';
+                    ratioCircle.className = 'relative w-40 h-40 sm:w-48 sm:h-48 flex items-center justify-center rounded-full border-[12px] border-[#E6F4EA] transition-all duration-500';
+                    statusElement.textContent = '安全水位 (Safe)';
+                    statusElement.className = 'text-xs sm:text-sm mt-2 font-bold text-[#859D8E]';
+                }
+            }
+
+            const stressRatio = stressDebt > 0 ? stressAsset / stressDebt : 0;
+            const stressRatioElement = document.getElementById('stress-ratio');
+            const lightningDropPercent = stressDropPercent * lightningRod.beta;
+            const stressLightningPrice = lightningRod.currentPrice * (1 - lightningDropPercent / 100);
+            
+            document.getElementById('stress-lightning-price').textContent = `NT$${formatNumber(stressLightningPrice, 2)}`;
+            document.getElementById('stress-lightning-drop').textContent = `-${lightningDropPercent}%`;
+
+            if (positions.length === 0) {
+                stressRatioElement.textContent = '0.0%';
+                stressRatioElement.className = 'font-black text-xl sm:text-2xl text-gray-500';
+                document.getElementById('rescue-cash').textContent = '$0';
+                document.getElementById('rescue-lots').textContent = '0.00 張';
+            } else {
+                stressRatioElement.textContent = formatPercent(stressRatio);
+                if (stressRatio < 1.3) stressRatioElement.className = 'font-black text-xl sm:text-2xl text-[#D9534F]';
+                else if (stressRatio < 1.66) stressRatioElement.className = 'font-black text-xl sm:text-2xl text-[#E58B55]';
+                else stressRatioElement.className = 'font-black text-xl sm:text-2xl text-[#859D8E]';
+
+                let cashNeeded = stressDebt - (stressAsset / targetMarginRatio);
+                if (cashNeeded < 0) cashNeeded = 0;
+                let sharesToSell = cashNeeded > 0 ? (cashNeeded / stressLightningPrice) : 0;
+                
+                document.getElementById('rescue-cash').textContent = `NT$${formatNumber(Math.ceil(cashNeeded))}`;
+                document.getElementById('rescue-lots').textContent = `${formatNumber(sharesToSell / 1000, 2)} 張`;
+            }
+        }
+
+        renderTable();
+        calculateAndRenderSummary();
+    </script>
+</body>
+</html>
